@@ -3,7 +3,7 @@
 <h4>My Subscriptions</h4>
 @using (Ajax.BeginForm("SubscribeToFeed", "Home", new AjaxOptions() { HttpMethod = "POST", UpdateTargetId = "SubscriptionList" }))
 {
-    <input id="feedQuery" name="feedQuery"  class="fluid" type="text" data-provide="typeahead" data-items="4" data-source='@Html.Raw(Json.Encode(Model.SubscriptionList))'>
+    <input id="feedQuery" name="feedQuery" class="fluid" type="text" data-provide="typeahead" data-items="4" data-source='@Html.Raw(Json.Encode(Model.SubscriptionList))'>
     <br />
     <input type="submit" class="btn btn-inverse btn-small" value="Add Subscription" />
 }
