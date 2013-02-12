@@ -28,5 +28,6 @@ namespace Twitter.Models.Home
         public IEnumerable<SelectListItem> FeedList { get; set; }
 
         public string[] SubscriptionList { get; set; }
+        public string SubscriptionQuery { get; set; }
     }
 }

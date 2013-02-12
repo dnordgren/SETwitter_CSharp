@@ -12,13 +12,9 @@
     <div id="FeedList" style="margin-bottom: 30px;">
         @{ Html.RenderPartial("_FeedView", Model); }
     </div>
-    <h4>My Subscriptions</h4>
-    @using(Ajax.BeginForm("", "", new AjaxOptions() { HttpMethod = "POST", UpdateTargetId="Subscriptions" }))
-    {
-        <input class="fluid" type="text" data-provide="typeahead" data-items="4" data-source='@Html.Raw(Json.Encode(Model.SubscriptionList))'>
-        <br />
-        <input type="submit" class="btn btn-inverse btn-small" value="Add Subscription" />
-    }
+    <div id="SubscriptionList">
+        @{ Html.RenderPartial("_SubscriptionView", Model); }
+    </div>
 </div>
 <div class="span9">
     <div id="FeedAlert" style="display: @(@Model.HasFeeds ? "none" : "block")" class="alert alert-block alert-error fade in">

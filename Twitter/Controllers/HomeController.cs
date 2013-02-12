@@ -64,6 +64,23 @@ namespace Twitter.Controllers
             return PartialView("_FeedView", model);
         }
 
+        [Authorize]
+        [HttpPost]
+        public PartialViewResult SubscribeToFeed(string feedQuery)
+        {
+            HomeViewModel model = new HomeViewModel();
+
+            using (TwitterContext ctx = new TwitterContext())
+            {
+                User user = ctx.Users.First(u => u.Email == User.Identity.Name);
+
+                model.SubscriptionList = ctx.Feeds.Where(f => f.Owner.ID != user.ID).
+                    Select(f => f.Name + " by " + f.Owner.Name).ToArray<string>();
+            }
+
+            return PartialView("_SubscriptionView", model);
+        }
+
         private HomeViewModel GenerateIndexModel()
         {
             HomeViewModel model = new HomeViewModel();

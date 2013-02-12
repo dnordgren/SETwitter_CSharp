@@ -157,6 +157,7 @@
     <Content Include="Views\Web.config" />
     <Content Include="Views\Home\_FeedView.cshtml" />
     <Content Include="Views\Home\_TweetView.cshtml" />
+    <Content Include="Views\Home\_SubscriptionView.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
