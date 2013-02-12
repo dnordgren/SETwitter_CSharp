@@ -1,0 +1,36 @@
+﻿@model  Twitter.Models.Home.HomeViewModel
+
+@{
+    Layout = "~/Shared/_Global.cshtml";
+}
+
+<div class="page-header">
+    <h1>Twitter <small>ok, not really</small></h1>
+</div>
+<div class="row-fluid" id="PageRow">
+<div class="span3">
+    <div id="FeedList" style="margin-bottom: 30px;">
+        @{ Html.RenderPartial("_FeedView", Model); }
+    </div>
+    <h4>My Subscriptions</h4>
+    @using(Ajax.BeginForm("", "", new AjaxOptions() { HttpMethod = "POST", UpdateTargetId="Subscriptions" }))
+    {
+        <input class="fluid" type="text" data-provide="typeahead" data-items="4" data-source='@Html.Raw(Json.Encode(Model.SubscriptionList))'>
+        <br />
+        <input type="submit" class="btn btn-inverse btn-small" value="Add Subscription" />
+    }
+</div>
+<div class="span9">
+    <div id="FeedAlert" style="display: @(@Model.HasFeeds ? "none" : "block")" class="alert alert-block alert-error fade in">
+        <h4 class="alert-heading">Oh snap! You don't have any feeds!</h4>
+        <p>You can't start tweeting until you have at least one feed to post the tweet to. You can view as many tweets as you like, but it won't be nearly as intersting until you can post your own.</p>
+        <p>
+        <a class="btn btn-danger" href="#feedModal" data-toggle="modal">Create a Feed</a>
+        </p>
+    </div>
+
+    <div id="TweetContent">
+        @{ Html.RenderPartial("_TweetView", Model); }
+    </div>
+</div>
+</div>

@@ -1,0 +1,33 @@
+﻿<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Twitter</title>
+    <link rel="stylesheet" type="text/css" href="~/Shared/bootstrap/css/bootstrap.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="~/Shared/bootstrap/css/bootstrap-responsive.css" />
+
+
+    @RenderSection("styles", required: false)
+
+    <script type="text/javascript" src="~/Shared/jquery/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/Shared/jquery/jquery-migrate-1.1.0.min.js"></script>
+
+    <script type="text/javascript" src="~/Shared/jquery/jquery.unobtrusive-ajax.min.js"></script>
+    <script type="text/javascript" src="~/Shared/jquery/jquery.validate.min.js"></script>
+    <script type="text/javascript" src="~/Shared/jquery/jquery.validate.unobtrusive.min.js"></script>
+    <script type="text/javascript" src="~/Shared/jquery/jquery-ui-1.8.20.min.js"></script>
+
+    <script type="text/javascript" src="~/Shared/bootstrap/js/bootstrap.min.js" ></script>
+    <script type="text/javascript" src="~/Shared/angular.min.js"></script>
+    <script type="text/javascript" src="~/Shared/modernizr-2.5.3.js"></script>
+
+    @RenderSection("scripts", required: false)
+
+</head>
+<body>
+    <div class="container-fluid">
+        @RenderBody()
+    </div>
+</body>
+</html>
