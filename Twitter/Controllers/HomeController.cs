@@ -120,7 +120,23 @@ namespace Twitter.Controllers
         }
 
         [Authorize]
-        [HttpPost, ActionName("LogOFf")]
+        [HttpPost, ActionName("Search")]
+        public PartialViewResult Search(string searchQuery)
+        {
+            HomeViewModel model = GenerateIndexModel(-1);
+            string[] terms = searchQuery.Split(new[] { ' ' });
+
+            using (TwitterContext ctx = new TwitterContext())
+            {
+                List<Tweet> matches = (from tweet in ctx.Tweets.Include("BelongsTo").Include("BelongsTo.Owner") where terms.All(t => tweet.Content.Contains(t)) select tweet).ToList<Tweet>();
+                model.Tweets = matches.OrderByDescending(t => t.PostDate).ToList<Tweet>();
+            }
+            model.DisplayFeed = -1;
+            return PartialView("_TweetView", model);
+        }
+
+        [Authorize]
+        [HttpGet, ActionName("LogOFf")]
         public ActionResult LogOff()
         {
             FormsAuthentication.SignOut();
