@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using System.Web.Security;
 using Twitter.Application;
 using Twitter.Models.Home;
 using Twitter_Shared.Data.Model;
@@ -14,7 +15,7 @@ namespace Twitter.Controllers
         [Authorize]
         public ActionResult Index()
         {
-            HomeViewModel model = GenerateIndexModel();
+            HomeViewModel model = GenerateIndexModel(-1);
             return View(model);
         }
 
@@ -34,7 +35,7 @@ namespace Twitter.Controllers
                 ctx.SaveChanges();
             }
 
-            HomeViewModel updatedMode = GenerateIndexModel();
+            HomeViewModel updatedMode = GenerateIndexModel(model.DisplayFeed);
             updatedMode.Tweet = "";
             updatedMode.SelectedFeed = model.SelectedFeed;
             ModelState.Clear();
@@ -66,22 +67,67 @@ namespace Twitter.Controllers
 
         [Authorize]
         [HttpPost]
-        public PartialViewResult SubscribeToFeed(string feedQuery)
+        public PartialViewResult SubscribeToFeed(long subscribeTo)
         {
-            HomeViewModel model = new HomeViewModel();
-
-            using (TwitterContext ctx = new TwitterContext())
+            if (subscribeTo != -1)
             {
-                User user = ctx.Users.First(u => u.Email == User.Identity.Name);
+                using (TwitterContext ctx = new TwitterContext())
+                {
+                    User user = ctx.Users.First(u => u.Email == User.Identity.Name);
+                    Feed feed = ctx.Feeds.Find(subscribeTo);
 
-                model.SubscriptionList = ctx.Feeds.Where(f => f.Owner.ID != user.ID).
-                    Select(f => f.Name + " by " + f.Owner.Name).ToArray<string>();
+                    if (feed.Subscribers == null)
+                    {
+                        feed.Subscribers = new List<User>();
+                    }
+                    feed.Subscribers.Add(user);
+                    ctx.Entry<Feed>(feed).State = System.Data.EntityState.Modified;
+
+                    ctx.SaveChanges();
+                }
             }
 
+            HomeViewModel model = GenerateIndexModel(-1);
             return PartialView("_SubscriptionView", model);
         }
 
-        private HomeViewModel GenerateIndexModel()
+        [Authorize]
+        [HttpGet, ActionName("FilterFeed")]
+        public PartialViewResult FilterByFeed(long feedId)
+        {
+            HomeViewModel model = GenerateIndexModel(feedId);
+            if (feedId == -1)
+            {
+                // the default feed (i.e. home state) should be displayed
+                return PartialView("_TweetView", model);
+            }
+            else
+            {
+                using (TwitterContext ctx = new TwitterContext())
+                {
+                    /* I'm only care about part of model needed for this
+                     * partial view.  This is an example of why I should actually
+                     * break the single view model into its own model for each
+                     * partial view on this page.
+                     */
+                    Feed feed = ctx.Feeds.Find(feedId);
+                    ctx.Entry(feed).Reload(); // ensure the most recent db data is included
+                    model.Tweets = (feed == null) ? new List<Tweet>() : feed.Tweets.OrderByDescending(t => t.PostDate).ToList<Tweet>();
+                }
+                model.DisplayFeed = feedId;
+                return PartialView("_TweetView", model);
+            }
+        }
+
+        [Authorize]
+        [HttpPost, ActionName("LogOFf")]
+        public ActionResult LogOff()
+        {
+            FormsAuthentication.SignOut();
+            return RedirectToAction("Index");
+        }
+
+        private HomeViewModel GenerateIndexModel(long displayFeed)
         {
             HomeViewModel model = new HomeViewModel();
             using (TwitterContext ctx = new TwitterContext())
@@ -94,26 +140,34 @@ namespace Twitter.Controllers
                  * are found in a user subscription */
                 List<Tweet> tweetsToDisplay = new List<Tweet>();
 
-                if (user.Feeds != null)
+                if (displayFeed == -1)
                 {
-                    foreach (Feed feed in user.Feeds)
+                    if (user.Feeds != null)
                     {
-                        if (feed.Tweets != null && feed.Tweets.Count > 0)
+                        foreach (Feed feed in user.Feeds)
                         {
-                            tweetsToDisplay.AddRange(feed.Tweets);
+                            if (feed.Tweets != null && feed.Tweets.Count > 0)
+                            {
+                                tweetsToDisplay.AddRange(feed.Tweets);
+                            }
+                        }
+                    }
+
+                    if (user.Subscriptions != null)
+                    {
+                        foreach (Feed feed in user.Subscriptions)
+                        {
+                            if (feed.Tweets != null && feed.Tweets.Count > 0)
+                            {
+                                tweetsToDisplay.AddRange(feed.Tweets);
+                            }
                         }
                     }
                 }
-
-                if (user.Subscriptions != null)
+                else
                 {
-                    foreach (Feed feed in user.Subscriptions)
-                    {
-                        if (feed.Tweets != null && feed.Tweets.Count > 0)
-                        {
-                            tweetsToDisplay.AddRange(feed.Tweets);
-                        }
-                    }
+                    Feed feed = ctx.Feeds.Find(displayFeed);
+                    tweetsToDisplay = (feed == null) ? new List<Tweet>() : feed.Tweets.ToList<Tweet>();
                 }
 
                 model.Tweets = tweetsToDisplay.OrderByDescending(t => t.PostDate).ToList<Tweet>();
@@ -126,9 +180,19 @@ namespace Twitter.Controllers
 
                 // Add the user's feeds to the feed model that will be rendered as a partial view
                 model.Feeds = user.Feeds == null ? new List<Feed>() : user.Feeds;
+                model.Subscriptions = user.Subscriptions == null ? new List<Feed>() : user.Subscriptions;
 
-                model.SubscriptionList = ctx.Feeds.Where(f => f.Owner.ID != user.ID).
-                    Select(f => f.Name +" by "+f.Owner.Name).ToArray<string>();
+                List<string> subscriptionStrings = new List<string>();
+                model.SubscriptionLookup = new Dictionary<string, long>();
+
+                foreach (Feed feed in ctx.Feeds.Include("Owner").Where(f => f.Owner.ID != user.ID))
+                {
+                    string subscription = string.Format("{0} by {1}", feed.Name, feed.Owner.Name);
+                    subscriptionStrings.Add(subscription);
+                    model.SubscriptionLookup.Add(subscription, feed.ID);
+                }
+
+                model.SubscriptionList = subscriptionStrings.ToArray<string>();
             }
             model.FeedList = model.Feeds.Select(f => new SelectListItem() { Text = f.Name, Value = Convert.ToString(f.ID) });
 

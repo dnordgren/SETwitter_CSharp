@@ -3,6 +3,7 @@
 <div id="Tweet" style="display: @(Model.HasFeeds ? "block" : "none")">
     @using (Ajax.BeginForm("Tweet", "Home", new AjaxOptions() { HttpMethod = "POST", UpdateTargetId="TweetContent" }))
     {
+        @Html.HiddenFor(m => m.DisplayFeed)
         @Html.DropDownListFor(m => Model.SelectedFeed, Model.FeedList)
         <br />
         @Html.TextAreaFor(m => m.Tweet, new { style = "width: 90%; font-size: 16pt;", rows = 3, placeholder = "Compose a new tweet ..." })

@@ -28,6 +28,9 @@ namespace Twitter.Models.Home
         public IEnumerable<SelectListItem> FeedList { get; set; }
 
         public string[] SubscriptionList { get; set; }
-        public string SubscriptionQuery { get; set; }
+        public long ToSubscribe { get; set; }
+
+        // I'll convert this to Json and use it to match on subscription autocomplete events
+        public IDictionary<string, long> SubscriptionLookup { get; set; }
     }
 }
