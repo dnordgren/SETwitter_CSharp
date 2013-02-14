@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Data;
 using System.Data.Entity;
 using System.Linq;
 using System.Web;
+using Twitter_Shared.Data;
 using Twitter_Shared.Data.Model;
 
 namespace Twitter.Application
@@ -49,6 +51,44 @@ namespace Twitter.Application
                 m.ToTable("FeedSubscriptions");
             });
         }
+    }
+
+    public class TwitterContextAdapter : IDbSetFactory, IDbContext
+    {
+        private readonly DbContext _context;
+
+        public TwitterContextAdapter(DbContext context)
+        {
+            _context = context;
+        }
+
+        #region IObjectContext Members
+
+        public void SaveChanges()
+        {
+            _context.SaveChanges();
+        }
+
+        #endregion
+
+        #region IObjectSetFactory Members
+
+        public void Dispose()
+        {
+            _context.Dispose();
+        }
+
+        public DbSet<T> CreateDbSet<T>() where T : class
+        {
+            return _context.Set<T>();
+        }
+
+        public void ChangeObjectState(object entity, EntityState state)
+        {
+            _context.Entry(entity).State = state;
+        }
+
+        #endregion
     }
 
 }
