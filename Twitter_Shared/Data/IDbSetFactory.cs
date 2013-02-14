@@ -14,5 +14,6 @@ namespace Twitter_Shared.Data
     {
         DbSet<T> CreateDbSet<T>() where T : class;
         void ChangeObjectState(object entity, EntityState state);
+        void RefreshEntity<T>(ref T entity) where T : class;
     }
 }

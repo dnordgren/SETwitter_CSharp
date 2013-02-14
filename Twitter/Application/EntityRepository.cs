@@ -76,6 +76,12 @@ namespace Twitter.Application
             _dbSetFactory.ChangeObjectState(entity, EntityState.Modified);
         }
 
+        public T Refresh(T entity)
+        {
+            _dbSetFactory.RefreshEntity(ref entity);
+            return entity;
+        }
+
         #endregion
 
         private static IQueryable<T> PerformInclusions(IEnumerable<Expression<Func<T, object>>> includeProperties,

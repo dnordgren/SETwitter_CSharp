@@ -131,6 +131,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Application\EntityRepository.cs" />
+    <Compile Include="Application\Service\TwitterService.cs" />
+    <Compile Include="Application\Service\UserService.cs" />
     <Compile Include="Application\TwitterContext.cs" />
     <Compile Include="Application\UnitOfWork.cs" />
     <Compile Include="Application\Bootstrapper.cs" />

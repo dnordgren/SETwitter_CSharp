@@ -6,12 +6,22 @@ using System.Web.Mvc;
 using System.Web.Security;
 using Twitter.Application;
 using Twitter.Models.Account;
+using Twitter_Shared.Data;
 using Twitter_Shared.Data.Model;
+using Twitter_Shared.Service;
 
 namespace Twitter.Controllers
 {
     public class LoginController : Controller
     {
+        private IUserService _userService;
+        private IUnitOfWork _unit; 
+
+        public LoginController(IUserService userService, IUnitOfWork unit)
+        {
+            _userService = userService;
+            _unit = unit;
+        }
 
         public ActionResult Index()
         {
@@ -23,22 +33,19 @@ namespace Twitter.Controllers
         {
             if ( ModelState.IsValid)
             {
-                using (TwitterContext ctx = new TwitterContext())
+                User newUser = new User()
                 {
-                    User newUser = new User()
-                    {
-                        Email = model.NewUser.Email,
-                        Location = model.NewUser.Location,
-                        Name = model.NewUser.Name,
-                        Password = model.NewUser.Password
-                    };
+                    Email = model.NewUser.Email,
+                    Location = model.NewUser.Location,
+                    Name = model.NewUser.Name,
+                    Password = model.NewUser.Password
+                };
+                _userService.CreateUser(newUser);
+                _unit.Commit();
 
-                    ctx.Users.Add(newUser);
-                    ctx.SaveChanges();
-                    FormsAuthentication.SetAuthCookie(model.NewUser.Email, false);
+                FormsAuthentication.SetAuthCookie(model.NewUser.Email, false);
 
-                    return RedirectToAction("Index", "Home");
-                }
+                return RedirectToAction("Index", "Home");
             } 
             else 
             {
@@ -49,25 +56,22 @@ namespace Twitter.Controllers
         [HttpPost]
         public ActionResult Index(LoginModel model, string returnUrl)
         {
-            using (TwitterContext ctx = new TwitterContext())
+            if (_userService.IsValidLogin(model.EmailAddress, model.Password))
             {
-                if (ctx.Users.Where(u => u.Email == model.EmailAddress && u.Password == model.Password).Count() != 0)
+                FormsAuthentication.SetAuthCookie(model.EmailAddress, false);
+                if (returnUrl != null)
                 {
-                    FormsAuthentication.SetAuthCookie(model.EmailAddress, false);
-                    if (returnUrl != null)
-                    {
-                        return Redirect(returnUrl);
-                    }
-                    else
-                    {
-                        return RedirectToAction("Index", "Home");
-                    }
+                    return Redirect(returnUrl);
                 }
                 else
                 {
-                    ModelState.AddModelError("result", "Incorrect user name or password.  Try again.");
-                    return View(model);
+                    return RedirectToAction("Index", "Home");
                 }
+            }
+            else
+            {
+                ModelState.AddModelError("result", "Incorrect user name or password.  Try again.");
+                return View(model);
             }
             return View(model);
         }

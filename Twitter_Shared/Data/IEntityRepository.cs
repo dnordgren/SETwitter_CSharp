@@ -19,5 +19,6 @@ namespace Twitter_Shared.Data
         void Delete(T entity);
         void Insert(T entity);
         void Update(T entity);
+        T Refresh(T entity);
     }
 }
