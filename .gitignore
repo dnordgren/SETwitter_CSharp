@@ -51,6 +51,10 @@ ipch/
 *.sdf
 *.cachefile
 
+#LocalDb
+*.mdf
+*.ldf
+
 # Visual Studio profiler
 *.psess
 *.vsp
