@@ -6,12 +6,25 @@ using System.Web.Mvc;
 using System.Web.Security;
 using Twitter.Application;
 using Twitter.Models.Home;
+using Twitter_Shared.Data;
 using Twitter_Shared.Data.Model;
+using Twitter_Shared.Service;
 
 namespace Twitter.Controllers
 {
     public class HomeController : Controller
     {
+        private IUnitOfWork _unit;
+        private ITwitterService _twitterService;
+        private IUserService _userService;
+
+        public HomeController(IUnitOfWork unit, ITwitterService twitterService, IUserService userService)
+        {
+            _unit = unit;
+            _twitterService = twitterService;
+            _userService = userService;
+        }
+
         [Authorize]
         public ActionResult Index()
         {
@@ -23,17 +36,14 @@ namespace Twitter.Controllers
         [HttpPost, ActionName("Tweet")]
         public PartialViewResult Tweet(HomeViewModel model)
         {
-            using (TwitterContext ctx = new TwitterContext())
+            Tweet tweet = new Tweet()
             {
-                Tweet tweet = new Tweet()
-                {
-                    BelongsTo = ctx.Feeds.Find(Convert.ToInt64(model.SelectedFeed)), 
-                    Content = model.Tweet, 
-                    PostDate = DateTime.Now
-                };
-                ctx.Tweets.Add(tweet);
-                ctx.SaveChanges();
-            }
+                BelongsTo = _twitterService.GetFeed(Convert.ToInt64(model.SelectedFeed)),
+                Content = model.Tweet,
+                PostDate = DateTime.Now
+            };
+            _twitterService.AddTweet(tweet);
+            _unit.Commit();
 
             HomeViewModel updatedMode = GenerateIndexModel(model.DisplayFeed);
             updatedMode.Tweet = "";
@@ -46,19 +56,15 @@ namespace Twitter.Controllers
         [HttpPost]
         public PartialViewResult CreateFeed(HomeViewModel model)
         {
-            using (TwitterContext ctx = new TwitterContext())
+            // get a user that matches the name of the currently logged in user
+            User user = _userService.FindUserForName(User.Identity.Name);
+            Feed feed = new Feed()
             {
-                // get a user that matches the name of the currently logged in user
-                User user = ctx.Users.First(u => u.Email == User.Identity.Name);
-                Feed feed = new Feed()
-                {
-                    Name = model.NewFeedName,
-                    Owner = user
-                };
-                ctx.Feeds.Add(feed);
-                ctx.SaveChanges();
-                model.Feeds = ctx.Entry<User>(user).Entity.Feeds;
-            }
+                Name = model.NewFeedName,
+                Owner = user
+            };
+            model.Feeds = _twitterService.AddFeed(feed);
+            _unit.Commit();
 
             model.NewFeedName = "";
             ModelState.Clear();
@@ -71,20 +77,11 @@ namespace Twitter.Controllers
         {
             if (subscribeTo != -1)
             {
-                using (TwitterContext ctx = new TwitterContext())
-                {
-                    User user = ctx.Users.First(u => u.Email == User.Identity.Name);
-                    Feed feed = ctx.Feeds.Find(subscribeTo);
+                User user = _userService.FindUserForName(User.Identity.Name);
+                Feed feed = _twitterService.GetFeed(subscribeTo);
+                _twitterService.SubscribeToFeed(user, feed);
 
-                    if (feed.Subscribers == null)
-                    {
-                        feed.Subscribers = new List<User>();
-                    }
-                    feed.Subscribers.Add(user);
-                    ctx.Entry<Feed>(feed).State = System.Data.EntityState.Modified;
-
-                    ctx.SaveChanges();
-                }
+                _unit.Commit();
             }
 
             HomeViewModel model = GenerateIndexModel(-1);
@@ -103,18 +100,16 @@ namespace Twitter.Controllers
             }
             else
             {
-                using (TwitterContext ctx = new TwitterContext())
-                {
-                    /* I'm only care about part of model needed for this
-                     * partial view.  This is an example of why I should actually
-                     * break the single view model into its own model for each
-                     * partial view on this page.
-                     */
-                    Feed feed = ctx.Feeds.Find(feedId);
-                    ctx.Entry(feed).Reload(); // ensure the most recent db data is included
-                    model.Tweets = (feed == null) ? new List<Tweet>() : feed.Tweets.OrderByDescending(t => t.PostDate).ToList<Tweet>();
-                }
+                /* I'm only care about part of model needed for this
+                 * partial view.  This is an example of why I should actually
+                 * break the single view model into its own model for each
+                 * partial view on this page.
+                 */
+                Feed feed = _twitterService.GetFeed(feedId);
+
+                model.Tweets = (feed == null) ? new List<Tweet>() : feed.Tweets.OrderByDescending(t => t.PostDate).ToList<Tweet>();
                 model.DisplayFeed = feedId;
+                
                 return PartialView("_TweetView", model);
             }
         }
@@ -124,14 +119,9 @@ namespace Twitter.Controllers
         public PartialViewResult Search(string searchQuery)
         {
             HomeViewModel model = GenerateIndexModel(-1);
-            string[] terms = searchQuery.Split(new[] { ' ' });
-
-            using (TwitterContext ctx = new TwitterContext())
-            {
-                List<Tweet> matches = (from tweet in ctx.Tweets.Include("BelongsTo").Include("BelongsTo.Owner") where terms.All(t => tweet.Content.Contains(t)) select tweet).ToList<Tweet>();
-                model.Tweets = matches.OrderByDescending(t => t.PostDate).ToList<Tweet>();
-            }
+            model.Tweets = _twitterService.Search(searchQuery);
             model.DisplayFeed = -1;
+
             return PartialView("_TweetView", model);
         }
 
@@ -143,13 +133,14 @@ namespace Twitter.Controllers
             return RedirectToAction("Index");
         }
 
+        /* this entire process of setting up the models should be refactored 
+         * in terms of partitioning the models and partial views */
         private HomeViewModel GenerateIndexModel(long displayFeed)
         {
             HomeViewModel model = new HomeViewModel();
-            using (TwitterContext ctx = new TwitterContext())
-            {
+
                 // get a user that matches the name of the currently logged in user
-                User user = ctx.Users.First(u => u.Email == User.Identity.Name);
+                User user = _userService.FindUserForName(User.Identity.Name);
 
                 /* Find all of the tweets that should be displayed. The tweets that 
                  * should be displayed are either authored by the user or those that 
@@ -182,7 +173,7 @@ namespace Twitter.Controllers
                 }
                 else
                 {
-                    Feed feed = ctx.Feeds.Find(displayFeed);
+                    Feed feed = _twitterService.GetFeed(displayFeed);
                     tweetsToDisplay = (feed == null) ? new List<Tweet>() : feed.Tweets.ToList<Tweet>();
                 }
 
@@ -201,7 +192,8 @@ namespace Twitter.Controllers
                 List<string> subscriptionStrings = new List<string>();
                 model.SubscriptionLookup = new Dictionary<string, long>();
 
-                foreach (Feed feed in ctx.Feeds.Include("Owner").Where(f => f.Owner.ID != user.ID))
+                List<Feed> possible = _twitterService.GetPossibleSubscriptionsFor(user);
+                foreach (Feed feed in possible)
                 {
                     string subscription = string.Format("{0} by {1}", feed.Name, feed.Owner.Name);
                     subscriptionStrings.Add(subscription);
@@ -209,7 +201,7 @@ namespace Twitter.Controllers
                 }
 
                 model.SubscriptionList = subscriptionStrings.ToArray<string>();
-            }
+            
             model.FeedList = model.Feeds.Select(f => new SelectListItem() { Text = f.Name, Value = Convert.ToString(f.ID) });
 
             return model;
