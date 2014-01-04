@@ -14,7 +14,5 @@ namespace Twitter_Shared.Data.Model
         public string Content { get; set; }
         public DateTime PostDate { get; set; }
         public Feed BelongsTo { get; set; }
-        public virtual ICollection<Tweet> RelatedTweets { get; set; }
-        public virtual ICollection<Tweet> RelatedTo { get; set; }
     }
 }

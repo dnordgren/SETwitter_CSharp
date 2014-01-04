@@ -10,7 +10,7 @@
         <p>Use your email address to sign into an existing account.</p>
         @using (Html.BeginForm("Index", "Login", FormMethod.Post))
         {
-            <p>@Html.TextBoxFor(m => Model.EmailAddress, new { placeholder = "Email Address" })</p>
+            <p>@Html.TextBoxFor(m => Model.Username, new { placeholder = "Username" })</p>
             <p>@Html.PasswordFor(m => Model.Password, new { placeholder = "Password" })</p>
             <input type="submit" class="btn" value="Sign In"/> <span class="text-error">&nbsp;@Html.ValidationMessage("result")</span>
         }
@@ -22,6 +22,11 @@
         {
             <p>
                 @Html.TextBoxFor(m => Model.NewUser.Name, new { placeholder = "Name" })
+                <br /><span class="text-error">@Html.ValidationMessageFor(m => Model.NewUser.Name)</span>
+            </p>
+            <p>
+                @Html.TextBoxFor(m => Model.NewUser.UserName, new { placeholder = "Username (i.e. @username)" })
+                <br /><small>Do not include the leading '@@'</small>
                 <br /><span class="text-error">@Html.ValidationMessageFor(m => Model.NewUser.Name)</span>
             </p>
             <p>

@@ -37,13 +37,6 @@ namespace Twitter.Application
                 .WithMany(f => f.Tweets)
                 .WillCascadeOnDelete(false);
 
-            modelBuilder.Entity<Tweet>().HasMany<Tweet>(t => t.RelatedTweets).WithMany(t => t.RelatedTo).Map(m =>
-            {
-                m.MapLeftKey("TweetId");
-                m.MapRightKey("RelatedId");
-                m.ToTable("RelatedTweets");
-            });
-
             modelBuilder.Entity<Feed>().HasMany<User>(f => f.Subscribers).WithMany(u => u.Subscriptions).Map(m =>
             {
                 m.MapLeftKey("FeedId");

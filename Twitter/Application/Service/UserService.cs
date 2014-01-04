@@ -24,12 +24,12 @@ namespace Twitter.Application.Service
 
         public Twitter_Shared.Data.Model.User FindUserForName(string userName)
         {
-            return _userRepository.First(u => u.Email == userName);
+            return _userRepository.First(u => u.UserName == userName);
         }
 
         public bool IsValidLogin(string userName, string password)
         {
-            return (_userRepository.Find(u => u.Email == userName && u.Password == password).Count() != 0);
+            return (_userRepository.Find(u => u.UserName == userName && u.Password == password).Count() != 0);
         }
 
         /* "standard" C# thread safe dispose pattern */

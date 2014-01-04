@@ -38,7 +38,8 @@ namespace Twitter.Controllers
                     Email = model.NewUser.Email,
                     Location = model.NewUser.Location,
                     Name = model.NewUser.Name,
-                    Password = model.NewUser.Password
+                    Password = model.NewUser.Password, 
+                    UserName = model.NewUser.UserName
                 };
                 _userService.CreateUser(newUser);
                 _unit.Commit();
@@ -56,9 +57,9 @@ namespace Twitter.Controllers
         [HttpPost]
         public ActionResult Index(LoginModel model, string returnUrl)
         {
-            if (_userService.IsValidLogin(model.EmailAddress, model.Password))
+            if (_userService.IsValidLogin(model.Username, model.Password))
             {
-                FormsAuthentication.SetAuthCookie(model.EmailAddress, false);
+                FormsAuthentication.SetAuthCookie(model.Username, false);
                 if (returnUrl != null)
                 {
                     return Redirect(returnUrl);
@@ -73,7 +74,6 @@ namespace Twitter.Controllers
                 ModelState.AddModelError("result", "Incorrect user name or password.  Try again.");
                 return View(model);
             }
-            return View(model);
         }
 
     }

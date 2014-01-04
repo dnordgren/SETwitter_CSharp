@@ -100,7 +100,7 @@ namespace Twitter.Controllers
             }
             else
             {
-                /* I'm only care about part of model needed for this
+                /* I only care about part of model needed for this
                  * partial view.  This is an example of why I should actually
                  * break the single view model into its own model for each
                  * partial view on this page.
