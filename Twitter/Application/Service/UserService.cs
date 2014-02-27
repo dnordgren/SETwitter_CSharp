@@ -24,7 +24,7 @@ namespace Twitter.Application.Service
 
         public Twitter_Shared.Data.Model.User FindUserForName(string userName)
         {
-            return _userRepository.First(u => u.UserName == userName);
+            return _userRepository.First(u => u.UserName == userName, u => u.Subscriptions, u => u.Feeds);
         }
 
         public bool IsValidLogin(string userName, string password)

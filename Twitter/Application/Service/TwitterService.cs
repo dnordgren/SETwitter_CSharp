@@ -39,12 +39,12 @@ namespace Twitter.Application.Service
 
         public void SubscribeToFeed(Twitter_Shared.Data.Model.User user, Twitter_Shared.Data.Model.Feed feed)
         {
-            if (feed.Subscribers == null)
+            if (user.Subscriptions == null)
             {
-                feed.Subscribers = new List<User>();
+                user.Subscriptions = new List<Feed>();
             }
-            feed.Subscribers.Add(user);
-            _feedRepository.Update(feed);
+            user.Subscriptions.Add(feed);
+            _userRepository.Update(user);
         }
 
         public Twitter_Shared.Data.Model.Feed GetFeed(long id)
@@ -63,7 +63,23 @@ namespace Twitter.Application.Service
 
         public List<Feed> GetPossibleSubscriptionsFor(User user)
         {
-            return _feedRepository.Find(f => f.Owner.ID != user.ID, f => f.Owner).ToList<Feed>();
+            List<Feed> feeds = _feedRepository.Find(f => f.Owner.ID != user.ID, f => f.Owner, f => f.Subscribers).ToList<Feed>();
+            List<Feed> filtered = new List<Feed>();
+
+            foreach (Feed f in feeds)
+            {
+                if (f.Subscribers.Contains(user) == false)
+                {
+                    filtered.Add(f);
+                }
+            }
+
+            return filtered;
+        }
+
+        public Feed FindFeedForOwner(string feedName, User owner)
+        {
+            return _feedRepository.Find(f => f.Owner.ID == owner.ID && f.Name.Equals(feedName)).FirstOrDefault();
         }
 
 

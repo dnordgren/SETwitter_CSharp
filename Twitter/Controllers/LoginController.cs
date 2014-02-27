@@ -44,7 +44,7 @@ namespace Twitter.Controllers
                 _userService.CreateUser(newUser);
                 _unit.Commit();
 
-                FormsAuthentication.SetAuthCookie(model.NewUser.Email, false);
+                FormsAuthentication.SetAuthCookie(model.NewUser.UserName, false);
 
                 return RedirectToAction("Index", "Home");
             } 

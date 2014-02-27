@@ -11,6 +11,7 @@ namespace Twitter_Shared.Service
         List<Feed> AddFeed(Feed feed);
         void AddTweet(Tweet tweet);
         void SubscribeToFeed(User user, Feed feed);
+        Feed FindFeedForOwner(string feedName, User owner);
 
         Feed GetFeed(long id);
 

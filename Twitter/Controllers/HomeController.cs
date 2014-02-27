@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using System.Web;
 using System.Web.Mvc;
 using System.Web.Security;
@@ -26,9 +28,9 @@ namespace Twitter.Controllers
         }
 
         [Authorize]
-        public ActionResult Index()
+        public ActionResult Index(long? selectedFeed)
         {
-            HomeViewModel model = GenerateIndexModel(-1);
+            HomeViewModel model = GenerateIndexModel(selectedFeed.HasValue ? selectedFeed.Value : -1);
             return View(model);
         }
 
@@ -73,45 +75,25 @@ namespace Twitter.Controllers
 
         [Authorize]
         [HttpPost]
-        public PartialViewResult SubscribeToFeed(long subscribeTo)
+        public PartialViewResult SubscribeToFeed(string subscribeTo)
         {
-            if (subscribeTo != -1)
+            if (subscribeTo != null)
             {
                 User user = _userService.FindUserForName(User.Identity.Name);
-                Feed feed = _twitterService.GetFeed(subscribeTo);
+
+                string[] parts = subscribeTo.Split(new string[] { "by " }, StringSplitOptions.None);
+                User owner = _userService.FindUserForName(parts[1].Trim().Substring(1));
+                Debug.Assert(owner != null);
+                
+                Feed feed = _twitterService.FindFeedForOwner(parts[0].Trim(), owner);
+                Debug.Assert(feed != null);
+
                 _twitterService.SubscribeToFeed(user, feed);
 
                 _unit.Commit();
             }
 
-            HomeViewModel model = GenerateIndexModel(-1);
-            return PartialView("_SubscriptionView", model);
-        }
-
-        [Authorize]
-        [HttpGet, ActionName("FilterFeed")]
-        public PartialViewResult FilterByFeed(long feedId)
-        {
-            HomeViewModel model = GenerateIndexModel(feedId);
-            if (feedId == -1)
-            {
-                // the default feed (i.e. home state) should be displayed
-                return PartialView("_TweetView", model);
-            }
-            else
-            {
-                /* I only care about part of model needed for this
-                 * partial view.  This is an example of why I should actually
-                 * break the single view model into its own model for each
-                 * partial view on this page.
-                 */
-                Feed feed = _twitterService.GetFeed(feedId);
-
-                model.Tweets = (feed == null) ? new List<Tweet>() : feed.Tweets.OrderByDescending(t => t.PostDate).ToList<Tweet>();
-                model.DisplayFeed = feedId;
-                
-                return PartialView("_TweetView", model);
-            }
+            return PartialView("Index", GenerateIndexModel(-1));
         }
 
         [Authorize]
@@ -176,6 +158,7 @@ namespace Twitter.Controllers
                     Feed feed = _twitterService.GetFeed(displayFeed);
                     tweetsToDisplay = (feed == null) ? new List<Tweet>() : feed.Tweets.ToList<Tweet>();
                 }
+                model.DisplayFeed = displayFeed;
 
                 model.Tweets = tweetsToDisplay.OrderByDescending(t => t.PostDate).ToList<Tweet>();
 
@@ -183,24 +166,33 @@ namespace Twitter.Controllers
                 {
                     model.HasFeeds = true;
                 }
-                model.DisplayFeed = -1;
 
                 // Add the user's feeds to the feed model that will be rendered as a partial view
                 model.Feeds = user.Feeds == null ? new List<Feed>() : user.Feeds;
+                model.Feeds = model.Feeds.OrderBy(f => f.Name).ToList();
+
                 model.Subscriptions = user.Subscriptions == null ? new List<Feed>() : user.Subscriptions;
 
-                List<string> subscriptionStrings = new List<string>();
-                model.SubscriptionLookup = new Dictionary<string, long>();
+                StringBuilder sb = new StringBuilder();
+                sb.Append("[");
 
                 List<Feed> possible = _twitterService.GetPossibleSubscriptionsFor(user);
                 foreach (Feed feed in possible)
                 {
-                    string subscription = string.Format("{0} by {1}", feed.Name, feed.Owner.Name);
-                    subscriptionStrings.Add(subscription);
-                    model.SubscriptionLookup.Add(subscription, feed.ID);
-                }
+                    string subscription = string.Format("{{value: \"{0} by @{1}\", tokens: [\"{2}\",\"{3}\",\"{4}\"]}}", feed.Name, feed.Owner.UserName, 
+                        feed.Owner.Name.Split(' ')[0], feed.Owner.Name.Split(' ')[1], feed.Name);
 
-                model.SubscriptionList = subscriptionStrings.ToArray<string>();
+                    sb.Append(string.Format("{0},", subscription));
+                }
+                if (possible.Count > 0)
+                {
+                    sb.Replace(',', ']', sb.Length - 1, 1);
+                }
+                else
+                {
+                    sb.Append("]");
+                }
+                model.SubscriptionTypeahead = sb.ToString();
             
             model.FeedList = model.Feeds.Select(f => new SelectListItem() { Text = f.Name, Value = Convert.ToString(f.ID) });
 

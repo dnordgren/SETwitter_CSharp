@@ -4,9 +4,9 @@
     @using (Ajax.BeginForm("Tweet", "Home", new AjaxOptions() { HttpMethod = "POST", UpdateTargetId="TweetContent" }))
     {
         @Html.HiddenFor(m => m.DisplayFeed)
-        @Html.DropDownListFor(m => Model.SelectedFeed, Model.FeedList)
+        @Html.DropDownListFor(m => Model.SelectedFeed, Model.FeedList, new { style = "margin-bottom: 20px;" })
         <br />
-        @Html.TextAreaFor(m => m.Tweet, new { style = "width: 90%; font-size: 16pt;", rows = 3, placeholder = "Compose a new tweet ..." })
+        @Html.TextAreaFor(m => m.Tweet, new { style = "margin-bottom: 20px; width: 90%; font-size: 16pt;", rows = 3, placeholder = "Compose a new tweet ..." })
         <br />
         <input type="submit" class="btn btn-primary" value="Tweet" /><span class="text-error">&nbsp; @Html.ValidationMessageFor(m => Model.Tweet)</span>
     }

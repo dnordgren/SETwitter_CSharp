@@ -30,7 +30,6 @@ namespace Twitter.Models.Home
         public string[] SubscriptionList { get; set; }
         public long ToSubscribe { get; set; }
 
-        // I'll convert this to Json and use it to match on subscription autocomplete events
-        public IDictionary<string, long> SubscriptionLookup { get; set; }
+        public string SubscriptionTypeahead { get; set; }
     }
 }
